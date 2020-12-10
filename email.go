@@ -3,45 +3,42 @@ package notifier
 import (
 	"bytes"
 	"crypto/tls"
+	"errors"
 	"fmt"
 	"net/smtp"
-	"os"
 	"strings"
 
 	"github.com/jordan-wright/email"
 )
 
 type EMailNotifier struct {
-	sender     string
-	tlsAddress string
-	tlsConfig  *tls.Config
-	smtpAuth   smtp.Auth
+	sender    string
+	tlsConfig *tls.Config
+	smtpAuth  smtp.Auth
 }
 
-func CreateEMailNotifier() (Notifier, error) {
-	if err := checkEnv(
-		"NOTIFIER_EMAIL_TLS_ADDRESS",
-		"NOTIFIER_EMAIL_TLS_PORT",
-		"NOTIFIER_EMAIL_SENDER_USERNAME",
-		"NOTIFIER_EMAIL_SENDER_PASSWORD"); err != nil {
-		return nil, err
+func NewEMailNotifier(server, username, password string) (Notifier, error) {
+	if server == "" {
+		return nil, errors.New("server is required")
 	}
 
-	tlsAddress := os.Getenv("NOTIFIER_EMAIL_TLS_ADDRESS")
-	if port := os.Getenv("NOTIFIER_EMAIL_TLS_PORT"); port != "" {
-		tlsAddress += ":" + port
+	if username == "" {
+		return nil, errors.New("username is required")
+	}
+
+	if password == "" {
+		return nil, errors.New("password is required")
 	}
 
 	emailNotifier := EMailNotifier{
-		sender:     os.Getenv("NOTIFIER_EMAIL_SENDER_USERNAME"),
-		tlsAddress: tlsAddress,
+		sender: username,
 		tlsConfig: &tls.Config{
 			InsecureSkipVerify: true,
-			ServerName:         tlsAddress,
+			ServerName:         server,
 		},
 	}
 
-	emailNotifier.smtpAuth = smtp.PlainAuth("", emailNotifier.sender, os.Getenv("NOTIFIER_EMAIL_SENDER_PASSWORD"), tlsAddress)
+	emailNotifier.smtpAuth = smtp.PlainAuth("", emailNotifier.sender, password, emailNotifier.tlsConfig.ServerName)
 
 	return emailNotifier, nil
 
@@ -81,15 +78,5 @@ func (emn EMailNotifier) Notify(receivers []string, subject, content string, att
 		}
 	}
 
-	return em.SendWithTLS(emn.tlsAddress, emn.smtpAuth, emn.tlsConfig)
-}
-
-func checkEnv(keys ...string) error {
-	for _, key := range keys {
-		if os.Getenv(key) == "" {
-			return fmt.Errorf("env %s is required", key)
-		}
-	}
-
-	return nil
+	return em.SendWithTLS(emn.tlsConfig.ServerName, emn.smtpAuth, emn.tlsConfig)
 }

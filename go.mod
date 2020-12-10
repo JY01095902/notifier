@@ -1,4 +1,4 @@
-module notifier
+module github.com/jy01095902/notifier
 
 go 1.14
 
