@@ -11,13 +11,13 @@ import (
 	"github.com/jordan-wright/email"
 )
 
-type EMailNotifier struct {
+type EmailNotifier struct {
 	sender    string
 	tlsConfig *tls.Config
 	smtpAuth  smtp.Auth
 }
 
-func NewEMailNotifier(server, username, password string) (Notifier, error) {
+func NewEmailNotifier(server, username, password string) (Notifier, error) {
 	if server == "" {
 		return nil, errors.New("server is required")
 	}
@@ -30,7 +30,7 @@ func NewEMailNotifier(server, username, password string) (Notifier, error) {
 		return nil, errors.New("password is required")
 	}
 
-	emailNotifier := EMailNotifier{
+	emailNotifier := EmailNotifier{
 		sender: username,
 		tlsConfig: &tls.Config{
 			InsecureSkipVerify: true,
@@ -44,7 +44,7 @@ func NewEMailNotifier(server, username, password string) (Notifier, error) {
 
 }
 
-func (emn EMailNotifier) Notify(receivers []string, subject, content string, attachments ...Attachment) error {
+func (emn EmailNotifier) Notify(receivers []string, subject, content string, attachments ...Attachment) error {
 	em := email.NewEmail()
 	em.From = emn.sender
 	em.Subject = subject
